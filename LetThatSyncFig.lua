@@ -1,4 +1,4 @@
--- LetThatSyncIn
+-- LetThatSyncFig
 -- By:
 --   _________  ________  _________  ________  ___
 --  |\___   ___\\   __  \|\___   ___\\   __  \|\  \
@@ -9,7 +9,7 @@
 --          \|__|  \|_______|    \|__|  \|__|\|__|\|_______|
 --
 -- Special thanks: Grandpa Scout & Pool
--- Version: 1.0.0
+-- Version: 1.0.3
 
 -- Config setup
 config:name("NameHere")
@@ -17,18 +17,27 @@ config:name("NameHere")
 -- Create table
 local sync = {}
 
+-- Determine which value should be applied, checking for nil before applying
+function sync.pick(...)
+	
+	-- Determine result
+	for i = 1, select("#", ...) do
+		local v = select(i, ...)
+		if v ~= nil then
+			return v
+		end
+	end
+	
+end
+
 -- Adds variable to table under new index, and provides index for access later
-function sync.add(value, default)
+function sync.add(...)
 	
 	-- New index number
 	local n = #sync + 1
 	
-	-- Determine which value should be applied, checking for nil before applying
-	if value ~= nil then
-		sync[n] = value
-	else
-		sync[n] = default
-	end
+	-- Create synced variable
+	sync[n] = sync.pick(...)
 	
 	-- Return index number
 	return n
