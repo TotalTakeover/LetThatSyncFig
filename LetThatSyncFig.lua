@@ -57,13 +57,13 @@ end
 if not host:isHost() then return sync end
 
 -- Sync on tick
-function events.TICK()
+events.TICK:register(function()
 	
 	if world.getTime() % 200 == 0 then
 		pings.syncVars(table.unpack(sync))
 	end
 	
-end
+end, "tickSync")
 
 -- Return table
 return sync
