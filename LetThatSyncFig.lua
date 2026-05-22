@@ -9,7 +9,7 @@
 --          \|__|  \|_______|    \|__|  \|__|\|__|\|_______|
 --
 -- Special thanks: Grandpa Scout & Pool
--- Version: 1.1.0
+-- Version: 1.1.1
 
 -- Create API
 local syncAPI = {}
@@ -23,9 +23,6 @@ local syncInternal = {}
 -- Meta table setup
 local syncMeta = {
 	__index = syncInternal,
-	__newindex = function(t, key, value)
-		rawset(type(value) ~= "function" and t or syncInternal, key, value)
-	end,
 	__type = "SyncObject"
 }
 
@@ -62,12 +59,22 @@ end
 -- Updates sync values
 local function updateValues(obj, v)
 	
-	-- Update main values
+	-- Update current value
 	obj.curr = v
-	obj.prev = v
 	
-	-- Update config if it exists
-	if obj.cfg ~= nil then config:save(obj.cfg, v) end
+	-- If value changed, preform the update
+	if obj.curr ~= obj.prev then
+		
+		-- Preform optional function if it exists
+		if obj.fn then obj.fn() end
+		
+		-- Update config if it exists
+		if obj.cfg ~= nil then config:save(obj.cfg, v) end
+		
+		-- Update previous value
+		obj.prev = v
+		
+	end
 	
 end
 
@@ -101,11 +108,26 @@ end
 function syncInternal:update(v)
 	
 	-- Check if change occured, and send ping
+	-- Prevents spam caused by user
 	if v ~= self.prev then
 		
 		pings.sendSyncUpdate(self.id, v)
 		
 	end
+	
+	-- Return object
+	return self
+	
+end
+
+-- Apply a function
+function syncInternal:applyFunc(func)
+	
+	-- Checks if function is actually a function
+	if type(func) ~= "function" then error("\n\n§6Must be a function!\n§c", 2) end
+	
+	-- Apply function to sync
+	self.fn = func
 	
 	-- Return object
 	return self
