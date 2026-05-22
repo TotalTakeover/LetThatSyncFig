@@ -9,100 +9,152 @@
 --          \|__|  \|_______|    \|__|  \|__|\|__|\|_______|
 --
 -- Special thanks: Grandpa Scout & Pool
--- Version: 1.0.4
+-- Version: 1.1.0
 
--- Config setup
-config:name("NameHere")
+-- Create API
+local syncAPI = {}
 
--- Create table
-local sync = {}
+-- Syncs table
+local syncs = {}
 
--- Determine which value should be applied, checking for nil before applying
-function sync.pick(...)
+-- Interal sync data
+local syncInternal = {}
+
+-- Meta table setup
+local syncMeta = {
+	__index = syncInternal,
+	__newindex = function(t, key, value)
+		rawset(type(value) ~= "function" and t or syncInternal, key, value)
+	end,
+	__type = "SyncObject"
+}
+
+-- Create a sync object
+function syncAPI:new(...)
 	
-	-- Determine result
+	-- Determine which value should be applied, checking for nil before returning
+	local result
 	for i = 1, select("#", ...) do
 		local v = select(i, ...)
 		if v ~= nil then
-			return v
+			result = v
 		end
 	end
 	
+	-- Create object
+	local obj = setmetatable(
+		{
+			prev = result,
+			curr = result,
+			id = #syncs + 1
+		},
+		syncMeta
+	)
+	
+	-- Add object to list
+	syncs[obj.id] = obj
+	
+	-- Return object
+	return obj
+	
 end
 
--- Adds variable to table under new index, and provides index for access later
-function sync.add(...)
+-- Updates sync values
+local function updateValues(obj, v)
 	
-	-- New index number
-	local n = #sync + 1
+	-- Update main values
+	obj.curr = v
+	obj.prev = v
 	
-	-- Create synced variable
-	sync[n] = sync.pick(...)
-	
-	-- Return index number
-	return n
+	-- Update config if it exists
+	if obj.cfg ~= nil then config:save(obj.cfg, v) end
 	
 end
 
--- Sync variables via ping
-function pings.syncVars(...)
+-- Sync variable via ping
+function pings.sendSyncUpdate(k, v)
 	
-	for i, v in ipairs({...}) do
-		sync[i] = v
+	-- Find sync object
+	local obj = syncs[k]
+	
+	-- Update values
+	updateValues(obj, v)
+	
+end
+
+-- Sync ALL variables via ping
+function pings.sendSyncUpdateAll(...)
+	
+	for k, v in ipairs({...}) do
+		
+		-- Find sync object
+		local obj = syncs[k]
+		
+		-- Update values
+		updateValues(obj, v)
+		
 	end
+	
+end
+
+-- Update a sync object
+function syncInternal:update(v)
+	
+	-- Check if change occured, and send ping
+	if v ~= self.prev then
+		
+		pings.sendSyncUpdate(self.id, v)
+		
+	end
+	
+	-- Return object
+	return self
+	
+end
+
+-- Apply a config key
+function syncInternal:config(name)
+	
+	-- Kill function if not host
+	if not host:isHost() then return self end
+	
+	-- Apply config to sync
+	self.cfg = name
+	
+	-- Get config value
+	local cfgValue = config:load(name)
+	
+	-- Update object if config has value
+	if cfgValue ~= nil then
+		updateValues(self, cfgValue)
+	end
+	
+	-- Return object
+	return self
 	
 end
 
 -- Host only instructions
-if not host:isHost() then return sync end
-
--- Create keybinds table
-local keys = {}
-
--- Stores keybind in table while creating for syncing config with current state
-function sync.keybind(keybind, configName)
-	
-	-- Attach bind
-	keybind:key(config:load(configName) or keybind:getKey())
-	
-	-- Store keybind 
-	keys[keybind] = {
-		config = configName,
-		key = keybind:getKey()
-	}
-	
-end
+if not host:isHost() then return syncAPI end
 
 -- Sync on tick
 events.TICK:register(function()
 	
-	-- Syncs variables
+	-- Sync variables
 	if world.getTime() % 200 == 0 then
-		pings.syncVars(table.unpack(sync))
-	end
-	
-	-- Syncs keybinds to configs
-	if host:getScreen() == "org.figuramc.figura.gui.screens.KeybindScreen" then
-		for k, v in pairs(keys) do
-			
-			-- Get current key
-			local key = k:getKey()
-			
-			-- Compare keys
-			if v.key ~= key then
-				
-				-- Save to config
-				config:save(v.config, key)
-				
-				-- Store data
-				v.key = key
-				
-			end
-			
+		
+		-- Gather values
+		local syncTables = {} 
+		for k, v in ipairs(syncs) do
+			syncTables[k] = v.curr
 		end
+		
+		-- Send values
+		pings.sendSyncUpdateAll(table.unpack(syncTables))
+		
 	end
 	
 end, "tickSync")
 
--- Return table
-return sync
+-- Return API
+return syncAPI
