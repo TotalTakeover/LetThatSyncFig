@@ -8,8 +8,8 @@
 --         \ \__\ \ \_______\   \ \__\ \ \__\ \__\ \_______\
 --          \|__|  \|_______|    \|__|  \|__|\|__|\|_______|
 --
--- Special thanks: Grandpa Scout & Pool
--- Version: 1.1.1
+-- Special thanks: Grandpa Scout, Pool & Mangodev
+-- Version: 1.1.2
 
 -- Create API
 local syncAPI = {}
@@ -27,7 +27,17 @@ local syncMeta = {
 }
 
 -- Create a sync object
-function syncAPI:new(...)
+function syncAPI.new(id, ...)
+	
+	-- Check if the id is a string
+	if type(id) ~= "string" then error("\n\n§6ID must be a string!\n§c", 2) end
+	
+	-- Check if the id already exists
+	for k, v in ipairs(syncs) do
+		if v.id == id then
+			error("\n\n§6ID must be unique!\n§c", 2)
+		end
+	end
 	
 	-- Determine which value should be applied, checking for nil before returning
 	local result
@@ -43,16 +53,31 @@ function syncAPI:new(...)
 		{
 			prev = result,
 			curr = result,
-			id = #syncs + 1
+			id = id
 		},
 		syncMeta
 	)
 	
-	-- Add object to list
-	syncs[obj.id] = obj
+	-- Add object to table
+	table.insert(syncs, obj)
 	
 	-- Return object
 	return obj
+	
+end
+
+-- Sorts table deterministically
+function events.ENTITY_INIT()
+	
+	-- Sorts table alphabetically
+	table.sort(syncs, function(a, b)
+		return a.id < b.id
+	end)
+	
+	-- Grants each object a numerical id to be used when pinging
+	for k, v in ipairs(syncs) do
+		v.nid = k
+	end
 	
 end
 
@@ -111,7 +136,7 @@ function syncInternal:update(v)
 	-- Prevents spam caused by user
 	if v ~= self.prev then
 		
-		pings.sendSyncUpdate(self.id, v)
+		pings.sendSyncUpdate(self.nid, v)
 		
 	end
 	
