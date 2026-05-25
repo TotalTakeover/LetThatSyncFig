@@ -9,7 +9,7 @@
 --          \|__|  \|_______|    \|__|  \|__|\|__|\|_______|
 --
 -- Special thanks: Grandpa Scout, Pool & Mangodev
--- Version: 1.1.3
+-- Version: 1.1.4
 
 -- Create API
 local syncAPI = {}
@@ -143,12 +143,29 @@ function pings.sendSyncUpdateAll(...)
 end
 
 -- Update a sync object
-function syncInternal:update(v)
+function syncInternal:update(v, buffer)
 	
 	-- Check if change occured, and send ping
 	-- Prevents spam caused by user
 	if v ~= self.prev then
 		
+		-- If a buffer is provided
+		if buffer ~= nil then
+			
+			-- Check if buffer is a number
+			typeCheck(buffer, "number")
+			
+			-- Update on host only
+			-- Ping will instead be sent when timer is decreased below
+			self.timer = buffer
+			updateValues(self, v)
+			
+			-- Return object
+			return self
+			
+		end
+		
+		-- Send ping
 		pings.sendSyncUpdate(self.nid, v)
 		
 	end
@@ -217,6 +234,22 @@ events.TICK:register(function()
 		-- Send values
 		pings.sendSyncUpdateAll(table.unpack(syncTables))
 		
+	end
+	
+	-- Countdown buffers
+	for k, v in ipairs(syncs) do
+		if v.timer then
+			
+			-- Decrement timer
+			v.timer = math.max(v.timer - 1, 0)
+			
+			-- If timer is 0, send ping
+			if v.timer == 0 then
+				v.timer = nil
+				pings.sendSyncUpdate(v.nid, v.curr)
+			end
+			
+		end
 	end
 	
 end, "tickSync")
