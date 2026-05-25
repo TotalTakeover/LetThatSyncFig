@@ -27,10 +27,12 @@ local syncMeta = {
 }
 
 -- Type checker that errors if type isnt what's needed
+local errorOverride = false -- Unique ID error message likes to fight the typeCheck error message for some reason, this prevents that
 local function typeCheck(v, t)
 	
 	if type(v) ~= t then
-		error("\n\n§6Type must be a "..t.."!\n§c", 3)
+		errorOverride = true
+		error("\n\n§6Argument must be a "..t.."!\n§c", 3)
 	end
 	
 end
@@ -44,7 +46,9 @@ function syncAPI.new(id, ...)
 	-- Check if the id already exists
 	for k, v in ipairs(syncs) do
 		if v.id == id then
-			error("\n\n§6ID must be unique!\n§c", 2)
+			if not errorOverride then
+				error("\n\n§6ID must be unique!\n§c", 2)
+			end
 		end
 	end
 	
