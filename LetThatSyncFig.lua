@@ -9,7 +9,7 @@
 --          \|__|  \|_______|    \|__|  \|__|\|__|\|_______|
 --
 -- Special thanks: Grandpa Scout, Pool & Mangodev
--- Version: 1.1.2
+-- Version: 1.1.3
 
 -- Create API
 local syncAPI = {}
@@ -26,11 +26,20 @@ local syncMeta = {
 	__type = "SyncObject"
 }
 
+-- Type checker that errors if type isnt what's needed
+local function typeCheck(v, t)
+	
+	if type(v) ~= t then
+		error("\n\n§6Type must be a "..t.."!\n§c", 3)
+	end
+	
+end
+
 -- Create a sync object
 function syncAPI.new(id, ...)
 	
 	-- Check if the id is a string
-	if type(id) ~= "string" then error("\n\n§6ID must be a string!\n§c", 2) end
+	typeCheck(id, "string")
 	
 	-- Check if the id already exists
 	for k, v in ipairs(syncs) do
@@ -149,7 +158,7 @@ end
 function syncInternal:applyFunc(func)
 	
 	-- Checks if function is actually a function
-	if type(func) ~= "function" then error("\n\n§6Must be a function!\n§c", 2) end
+	typeCheck(func, "function")
 	
 	-- Apply function to sync
 	self.fn = func
@@ -160,16 +169,21 @@ function syncInternal:applyFunc(func)
 end
 
 -- Apply a config key
-function syncInternal:config(name)
+function syncInternal:config(cfgName)
 	
 	-- Kill function if not host
 	if not host:isHost() then return self end
 	
+	-- Check if the name is a string
+	if cfgName ~= nil then
+		typeCheck(cfgName, "string")
+	end
+	
 	-- Apply config to sync
-	self.cfg = name
+	self.cfg = cfgName or self.id
 	
 	-- Get config value
-	local cfgValue = config:load(name)
+	local cfgValue = config:load(self.cfg)
 	
 	-- Update object if config has value
 	if cfgValue ~= nil then
