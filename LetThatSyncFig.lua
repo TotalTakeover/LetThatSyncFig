@@ -9,7 +9,7 @@
 --          \|__|  \|_______|    \|__|  \|__|\|__|\|_______|
 --
 -- Special thanks: Grandpa Scout, Pool & Mangodev
--- Version: 1.1.4
+-- Version: 1.1.5
 
 -- Create API
 local syncAPI = {}
@@ -66,6 +66,7 @@ function syncAPI.new(id, ...)
 		{
 			prev = result,
 			curr = result,
+			funcs = {},
 			id = id
 		},
 		syncMeta
@@ -103,8 +104,10 @@ local function updateValues(obj, v)
 	-- If value changed, preform the update
 	if obj.curr ~= obj.prev then
 		
-		-- Preform optional function if it exists
-		if obj.fn then obj.fn() end
+		-- Preform optional functions if they exist
+		for k in pairs(obj.funcs) do
+			k()
+		end
 		
 		-- Update config if it exists
 		if obj.cfg ~= nil then config:save(obj.cfg, v) end
@@ -176,13 +179,27 @@ function syncInternal:update(v, buffer)
 end
 
 -- Apply a function
-function syncInternal:applyFunc(func)
+function syncInternal:addFunc(func)
 	
 	-- Checks if function is actually a function
 	typeCheck(func, "function")
 	
 	-- Apply function to sync
-	self.fn = func
+	self.funcs[func] = func
+	
+	-- Return function
+	return func
+	
+end
+
+-- Remove a function
+function syncInternal:removeFunc(func)
+	
+	-- Checks if function is actually a function
+	typeCheck(func, "function")
+	
+	-- Remove function from sync
+	self.funcs[func] = nil
 	
 	-- Return object
 	return self
