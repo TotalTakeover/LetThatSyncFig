@@ -9,7 +9,7 @@
 --          \|__|  \|_______|    \|__|  \|__|\|__|\|_______|
 --
 -- Special thanks: Grandpa Scout, Pool & Mangodev
--- Version: 1.1.5
+-- Version: 1.1.6
 
 -- Create API
 local syncAPI = {}
@@ -237,10 +237,14 @@ end
 if not host:isHost() then return syncAPI end
 
 -- Sync on tick
+local _tick = 0
 events.TICK:register(function()
 	
+	-- Get time
+	local tick = world.getTime()
+	
 	-- Sync variables
-	if world.getTime() % 200 == 0 then
+	if tick % 200 == 0 and tick ~= _tick then
 		
 		-- Gather values
 		local syncTables = {} 
@@ -250,6 +254,10 @@ events.TICK:register(function()
 		
 		-- Send values
 		pings.sendSyncUpdateAll(table.unpack(syncTables))
+		
+		-- Store prev tick
+		-- Helps prevent ping spam if world is paused on tick
+		_tick = tick
 		
 	end
 	
