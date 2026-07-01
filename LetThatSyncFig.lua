@@ -159,8 +159,8 @@ function syncInternal:update(v, buffer)
 			typeCheck(buffer, "number")
 			
 			-- Update on host only
-			-- Ping will instead be sent when timer is decreased below
-			self.timer = buffer
+			-- Ping will instead be sent when countdown reaches 0
+			self.countdown = buffer
 			updateValues(self, v)
 			
 			-- Return object
@@ -255,14 +255,14 @@ events.TICK:register(function()
 	
 	-- Countdown buffers
 	for k, v in ipairs(syncs) do
-		if v.timer then
+		if v.countdown then
 			
-			-- Decrement timer
-			v.timer = math.max(v.timer - 1, 0)
+			-- Decrement countdown
+			v.countdown = math.max(v.countdown - 1, 0)
 			
-			-- If timer is 0, send ping
-			if v.timer == 0 then
-				v.timer = nil
+			-- If countdown reaches 0, send ping
+			if v.countdown == 0 then
+				v.countdown = nil
 				pings.sendSyncUpdate(v.nid, v.curr)
 			end
 			
