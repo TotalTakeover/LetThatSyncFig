@@ -9,7 +9,7 @@
 --          \|__|  \|_______|    \|__|  \|__|\|__|\|_______|
 --
 -- Special thanks: Grandpa Scout, Pool & Mangodev
--- Version: 1.1.8
+-- Version: 1.1.9
 
 -- An API for handling the creation of Sync Objects.
 ---@class SyncAPI
@@ -26,12 +26,13 @@ local syncAPI = {}
 -- The current state of a sync object's value.
 ---@field curr any
 -- A table holding functions for a sync object to preform.
----@field funcs table
+---@field funcs table<function, boolean>
 -- A countdown for how many ticks before an object's ping is sent.
 ---@field countdown integer
 local syncObject = {}
 
 -- A table that holds the sync objects.
+---@type SyncObject[]
 local syncs = {}
 
 -- The metatable for sync objects.
@@ -43,7 +44,7 @@ local syncMeta = {
 -- Unique ID error message likes to fight the `typeCheck` error message for some reason; this prevents that.
 local errorOverride = false
 
--- Type checker that errors if type isnt what's needed.
+-- Type checker that errors if type isn't what's needed.
 ---@param value any #
 -- Value that is checked to ensure it is matching the provided type.
 ---@param typeStr string #
@@ -65,7 +66,7 @@ end
 ---@param ... any #
 -- The default value of a sync object.  
 -- You may send as many values as you would like; the sync object will only use the first value thats NOT `nil`.  
--- This is useful if you would like an optional default that doesnt always occur, and a backup thats guaranteed.  
+-- This is useful if you would like an optional default that doesn't always occur, and a backup thats guaranteed.  
 -- If all values are `nil`, the sync object's value will be `nil`.
 ---@nodiscard
 function syncAPI.new(id, ...)
@@ -74,8 +75,8 @@ function syncAPI.new(id, ...)
 	typeCheck(id, "string")
 	
 	-- Check if the id already exists
-	for _, obj in ipairs(syncs) do
-		if obj.id == id then
+	for i = 1, #syncs do
+		if syncs[i].id == id then
 			if not errorOverride then
 				error("\n\n§6ID must be unique!\n§c", 2)
 			end
@@ -119,8 +120,8 @@ function events.ENTITY_INIT()
 	end)
 	
 	-- Grants each object a numerical id to be used when pinging
-	for id, obj in ipairs(syncs) do
-		obj.nid = id
+	for id = 1, #syncs do
+		syncs[id].nid = id
 	end
 	
 end
@@ -139,7 +140,7 @@ local function updateValues(obj, value)
 	if obj.curr ~= obj.prev then
 		
 		-- Preform optional function (if it exists)
-		for _, func in pairs(obj.funcs) do func() end
+		for func in pairs(obj.funcs) do func() end
 		
 		-- Update config if it exists
 		if obj.cfg ~= nil then config:save(obj.cfg, value) end
@@ -164,8 +165,9 @@ end
 ---@param ... any #
 -- The values of the sync objects, in order of number id.
 function pings.sendSyncUpdateAll(...)
-	for i, value in ipairs({...}) do
-		updateValues(syncs[i], value)
+	local tbl = {...}
+	for i = 1, #tbl do
+		updateValues(syncs[i], tbl[i])
 	end
 end
 
@@ -178,7 +180,7 @@ end
 -- This is useful for preventing ping spam, usually caused by rapid clicking and scroll wheels.
 function syncObject:update(value, buffer)
 	
-	-- Check if change occured, and send ping
+	-- Check if change occurred, and send ping
 	-- Prevents spam caused by user
 	if value ~= self.prev then
 		
@@ -214,17 +216,17 @@ end
 function syncObject:addFuncs(...)
 	
 	-- Iterate through varargs
-	for _, func in ipairs({...}) do
+	for _, func in pairs({...}) do
 		
 		-- Checks if function is actually a function
 		typeCheck(func, "function")
 		
 		-- Apply function to sync
-		self.funcs[func] = func
+		self.funcs[func] = true
 		
 	end
 	
-	-- Return functions (incase you need them)
+	-- Return functions (in case you need them)
 	return ...
 	
 end
@@ -235,7 +237,7 @@ end
 function syncObject:removeFuncs(...)
 	
 	-- Iterate through varargs
-	for _, func in ipairs({...}) do
+	for _, func in pairs({...}) do
 		
 		-- Checks if function is actually a function
 		typeCheck(func, "function")
@@ -295,11 +297,11 @@ events.TICK:register(function()
 	if tick % 200 == 0 and tick ~= _tick then
 		
 		-- Sync objects values.
-		local syncTables = {} 
+		local syncTables = {}
 		
 		-- Gather values
-		for i, obj in ipairs(syncs) do
-			syncTables[i] = obj.curr
+		for i = 1, #syncs do
+			syncTables[i] = syncs[i].curr
 		end
 		
 		-- Send values
@@ -312,7 +314,12 @@ events.TICK:register(function()
 	end
 	
 	-- Countdown buffers
-	for _, obj in ipairs(syncs) do
+	for i = 1, #syncs do
+		
+		-- Sync object
+		local obj = syncs[i]
+		
+		-- Check for countdown
 		if obj.countdown then
 			
 			-- How many ticks left before ping.
@@ -325,6 +332,7 @@ events.TICK:register(function()
 			end
 			
 		end
+		
 	end
 	
 end, "tickSync")
