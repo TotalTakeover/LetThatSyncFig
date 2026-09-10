@@ -9,7 +9,7 @@
 --          \|__|  \|_______|    \|__|  \|__|\|__|\|_______|
 --
 -- Special thanks: Grandpa Scout, Pool & Mangodev
--- Version: 1.1.9
+-- Version: 1.1.10
 
 -- An API for handling the creation of Sync Objects.
 ---@class SyncAPI
@@ -215,8 +215,14 @@ end
 -- The functions that will be added to a sync object.
 function syncObject:addFuncs(...)
 	
+	-- Gather varargs
+	local funcs = {...}
+	
 	-- Iterate through varargs
-	for _, func in pairs({...}) do
+	for i = 1, #funcs do
+		
+		-- Get function
+		local func = funcs[i]
 		
 		-- Checks if function is actually a function
 		typeCheck(func, "function")
@@ -236,8 +242,14 @@ end
 -- The functions that will be removed from a sync object.
 function syncObject:removeFuncs(...)
 	
+	-- Gather varargs
+	local funcs = {...}
+	
 	-- Iterate through varargs
-	for _, func in pairs({...}) do
+	for i = 1, #funcs do
+		
+		-- Get function
+		local func = funcs[i]
 		
 		-- Checks if function is actually a function
 		typeCheck(func, "function")
