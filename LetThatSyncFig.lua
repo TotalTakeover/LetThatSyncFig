@@ -140,7 +140,7 @@ local function updateValues(obj, value)
 	if obj.curr ~= obj.prev then
 		
 		-- Preform optional function (if it exists)
-		for func in pairs(obj.funcs) do func() end
+		for func in pairs(obj.funcs) do func(obj) end
 		
 		-- Update config if it exists
 		if obj.cfg ~= nil then config:save(obj.cfg, value) end
@@ -211,8 +211,9 @@ function syncObject:update(value, buffer)
 end
 
 -- Add functions to a sync object that will be preformed when its value is updated.
----@param ... function #
--- The functions that will be added to a sync object.
+---@param ... fun(self?: SyncObject) #
+-- The functions that will be added to a sync object.  
+-- If you pass an optional arg, you can access the SyncObject within the function.
 function syncObject:addFuncs(...)
 	
 	-- Gather varargs
