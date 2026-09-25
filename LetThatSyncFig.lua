@@ -104,7 +104,7 @@ function syncAPI.new(id, ...)
 	)
 	
 	-- Add object to table
-	table.insert(syncs, obj)
+	syncs[#syncs + 1] = obj
 	
 	-- Return object
 	return obj
